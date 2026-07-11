@@ -63,7 +63,7 @@ export const initScheduler = () => {
                 }
             }
             if(postsToPublish.length){
-                console.log(`Evaluated ${postToPublish.length} posts at ${now.toISOString()}`)
+                console.log(`Evaluated ${postsToPublish.length} posts at ${now.toISOString()}`)
             }
         } catch (error) {
              console.error("Error in scheduler:", error)
