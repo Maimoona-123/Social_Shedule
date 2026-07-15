@@ -8,7 +8,7 @@ export const initScheduler = () => {
     cron.schedule('* * * * *', async() => {
         try {
         const now = new Date();
-            const postsToPublish = await Post.find({status: "schedule", scheduledFor: {$lte: now}});
+            const postsToPublish = await Post.find({status: "scheduled", scheduledFor: {$lte: now}});
             for (const post of postsToPublish){
                 try {
                     const accounts = await Account.find({
@@ -24,7 +24,7 @@ export const initScheduler = () => {
                     }
 
                     const zernioPlatforms = accounts.map((acc) => ({
-                        tform: acc.platform as any,
+                        platform: acc.platform as any,
                         accountId: acc.zernioAccountId!
                     }))
 
@@ -63,7 +63,7 @@ export const initScheduler = () => {
                 }
             }
             if(postsToPublish.length){
-                console.log(`Evaluated ${postToPublish.length} posts at ${now.toISOString()}`)
+                console.log(`Evaluated ${postsToPublish.length} posts at ${now.toISOString()}`)
             }
         } catch (error) {
              console.error("Error in scheduler:", error)

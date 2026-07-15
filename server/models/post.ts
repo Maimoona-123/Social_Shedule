@@ -9,7 +9,7 @@ const postSchema = new mongoose.Schema({
      "linkedin_page", "instagram_buisness"]}],
 
      scheduledFor: {type: Date, required: true},
-     status:{type: String, enum:["draft", "schedule", "published", "failed"], default: "scheduled"}
+     status:{type: String, enum:["draft", "scheduled", "published", "failed"], default: "scheduled"}
 
 }, { timestamps: true });
 

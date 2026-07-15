@@ -26,8 +26,8 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRouter)
-app.use('api/oauth', socialAuthRouter)
-app.use('api/accounts', accountRouter)
+app.use('/api/oauth', socialAuthRouter)
+app.use('/api/accounts', accountRouter)
 app.use('/api/posts', postRouter)
 app.use('/api/activity', activityRouter)
 

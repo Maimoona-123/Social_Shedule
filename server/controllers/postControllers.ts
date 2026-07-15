@@ -200,7 +200,7 @@ export const schedulePost = async (req: AuthRequest, res: Response): Promise<voi
             });
             mediaUrl = result.secure_url;
             mediaType = result.resource_type === "video" ? "video" : "image";
-        } 
+        }
         const post = await Post.create({
             user: req.user._id,
             content,
@@ -213,8 +213,12 @@ export const schedulePost = async (req: AuthRequest, res: Response): Promise<voi
 
         res.status(201).json(post);
 
-    }catch (error: any) {
-            res.status(500).json({ message: error?.message || "Server Error" })
+    } catch (error: any) {
+        console.error("SCHEDULE POST ERROR:");
+        console.error(error);
 
-        }
+        res.status(500).json({
+            message: error?.message || "Server Error"
+        });
     }
+}

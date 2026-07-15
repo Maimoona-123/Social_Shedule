@@ -7,7 +7,7 @@ const postRouter = express.Router();
 
 postRouter.get('/', protect, getPosts);
 postRouter.get('/generations', protect, getGenerations);
-postRouter.post('/', upload.single("media"), schedulePost);
+postRouter.post('/', protect, upload.single("media"), schedulePost);
 postRouter.post('/generate', protect, generatePost);
 
 export default postRouter;
