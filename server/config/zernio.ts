@@ -5,4 +5,6 @@ const zernio = new Zernio({
     baseURL: 'https://zernio.com/api'
 })
 
-export default zernio
+console.log("ZERNIO KEY EXISTS:", !!process.env.ZERNIO_API_KEY);
+
+export default zernio;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { dummyGenerationData, PLATFORMS } from '../assets/assets';
+import { PLATFORMS } from '../assets/assets';
 import { ArrowRightIcon, CalendarIcon, ClockIcon, HistoryIcon, Loader2Icon, TimerIcon, Wand2Icon, XIcon } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../api/axios';
 
 const AIComposer = () => {
 
@@ -20,7 +22,12 @@ const AIComposer = () => {
   const [scheduling, setScheduling] = useState(false);
 
   const fetchGeneration = async () => {
-    setGenerations(dummyGenerationData);
+    try {
+      const { data } = await api.get('/api/posts/generations')
+      setGenerations(data)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message);
+    }
   }
 
   useEffect(() => {
@@ -28,20 +35,65 @@ const AIComposer = () => {
   }, []);
 
   const handleGenerate = async () => {
-    setLoading(true)
+    if (!prompt) {
+      toast.error("please enter a prompt")
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await api.post('/api/posts/generation', { prompt, tone, generateImage });
+      setGenerations([data, ...generations]);
+      setActiveScheduler(data);
+      toast.success("Content generated..!")
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message);
 
-    setTimeout(() => {
+    } finally {
       setLoading(false)
-    }, 2000)
+    }
   }
 
   const handleSchedule = async () => {
-    setScheduling(true);
-    setTimeout(() => {
-      setScheduling(false)
-    }, 2000)
-  }
+    if (!activeScheduler) return;
 
+    if (selectedPlatform.length === 0) {
+      toast.error("Select at least one platform..");
+      return;
+    }
+
+    if (!scheuledDate || !scheuledTime) {
+      toast.error("Select date and time");
+      return;
+    }
+
+    const scheduledFor = new Date(`${scheuledDate}T${scheuledTime}`).toISOString();
+
+    setScheduling(true);
+
+    try {
+      await api.post('/api/posts', {
+        content: activeScheduler.content,
+        mediaUrl: activeScheduler.mediaUrl,
+        mediaType: activeScheduler.mediaType,
+        platforms: selectedPlatform,
+        scheduledFor,
+        status: "schedule"
+      })
+
+      toast.success("AI Post scheduled..!");
+
+      setActiveScheduler(null);
+      setSelectedPlatforms([]);
+      setScheduledDate("");
+      setScheduledTime("");
+
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to schedule")
+    }
+    finally {
+      setScheduling(false)
+    }
+  }
 
   const tones = ["Professional", "Creative", "Funny", "Minimalist", "Excited"]
 
@@ -195,7 +247,7 @@ const AIComposer = () => {
                       return (
                         <button className={`p-2.5 rounded-md border text-xs ${active ? "bg-red-500/80 text-white"
                           : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
-                        }`}
+                          }`}
                           key={p.id} onClick={() =>
                             setSelectedPlatforms((prev) => prev.includes(p.id) ? prev.filter((x) => x !== p.id) : [...prev, p.id])}>
                           <p.icon className="size-4.5" />
@@ -207,25 +259,25 @@ const AIComposer = () => {
 
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                   <div className='relative'>
-                    <CalendarIcon className='size-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400'/>
+                    <CalendarIcon className='size-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' />
                     <input type="date" className='w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100
                     rounded-md text-slate-900 text-sm focus:outline-none transition-all' value={scheuledDate}
-                    onChange={(e) =>setScheduledDate(e.target.value)}/>
+                      onChange={(e) => setScheduledDate(e.target.value)} />
                   </div>
 
 
-                   <div className='relative'>
-                    <ClockIcon className='size-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400'/>
+                  <div className='relative'>
+                    <ClockIcon className='size-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' />
                     <input type="time" className='w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100
                     rounded-md text-slate-900 text-sm focus:outline-none transition-all' value={scheuledTime}
-                    onChange={(e) =>setScheduledTime(e.target.value)}/>
+                      onChange={(e) => setScheduledTime(e.target.value)} />
                   </div>
                 </div>
               </div>
 
               <button className='w-full flex items-center justify-center gap-2 py-3 rounded-md bg-slate-200 
               text-slate-700 hover:bg-red-500 hover:text-white transition' onClick={handleSchedule}>
-                {scheduling ? <Loader2Icon className='size-4 animate-spin'/> : <TimerIcon className='size-4'/>}
+                {scheduling ? <Loader2Icon className='size-4 animate-spin' /> : <TimerIcon className='size-4' />}
                 Schedule Post
               </button>
             </div>

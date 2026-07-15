@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { dummyPostsData, PLATFORMS } from '../assets/assets';
+import { PLATFORMS } from '../assets/assets';
 import { ArrowRightIcon, CalendarDaysIcon, CalendarIcon, ClockIcon, SendIcon, XIcon } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
 
 const Sheduler = () => {
 
@@ -13,12 +15,17 @@ const Sheduler = () => {
   const [loading, setLoading] = useState(false);
 
   const fetchPosts = async () => {
-    setPosts(dummyPostsData)
+    try {
+      const {data} = await api.get('/api/posts')
+      setPosts(data)
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message)
+    }
   }
 
   useEffect(() => {
     (async () => await fetchPosts())();
-    const interval = setInterval(async () => await fetchPosts(), 1000);
+    const interval = setInterval(async () => await fetchPosts(), 10000);
     return () => clearInterval(interval);
 
   }, [])
@@ -30,11 +37,45 @@ const Sheduler = () => {
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false);
-      setPosts((prev) => [...prev, dummyPostsData])
-    })
+    if(selectedPlatforms.length === 0){
+      toast.error("Select at least one platform");
+      return
+    }
+
+    if(!scheduledDate || !scheduledTime){
+      toast.error("Select date and time");
+      return
+    }
+
+    if(selectedPlatforms.includes('instagram') && !mediaFile){
+      toast.error("Instagram requires an image or video")
+      return;
+    }
+
+    const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+    const formData = new FormData();
+    formData.append("content", content);
+    formData.append("scheduledFor", scheduledFor);
+    formData.append("status", "scheduled");
+    formData.append("platforms", JSON.stringify(selectedPlatforms));
+    
+    if(mediaFile) formData.append("media", mediaFile);
+    setLoading(true);
+
+    try {
+      await api.post('/api/posts', formData, {headers: {"Content-Type": "multipart/formData"}})
+      toast.success("Post scheduled..!");
+      setContent("");
+      setScheduledDate("");
+      setScheduledTime("");
+      setSelectedPlatforms([])
+      setMediaFile(null);
+      fetchPosts()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message)
+    }finally{
+      setLoading(false)
+    }
   }
 
   return (
@@ -183,7 +224,7 @@ const Sheduler = () => {
 
                   <div className='flex items-center justify-between mb-2'>
                     <div className='flex gap-1.5 items-center'>
-                      {post.platforms.map((pl: string) => {
+                      {post.platform.map((pl: string) => {
                         const meta = PLATFORMS.find((p) => p.id === pl);
                         return meta ? <meta.icon key={pl} className='size-3.5 text-slate-400' /> : null
                       })}
@@ -214,7 +255,7 @@ const Sheduler = () => {
           </div>
 
           <div className='max-h-72 overflow-y-auto divide-y divide-slate-50'>
-            {scheduled.length === 0 ? (
+            {published.length === 0 ? (
               <div className='py-10 text-center text-slate-400 text-sm'>
                 No published posts yet
               </div>
@@ -224,7 +265,7 @@ const Sheduler = () => {
 
                   <div className='flex items-center justify-between mb-2'>
                     <div className='flex gap-1.5 items-center'>
-                      {post.platforms.map((pl: string) => {
+                      {post.platform.map((pl: string) => {
                         const meta = PLATFORMS.find((p) => p.id === pl);
                         return meta ? <meta.icon key={pl} className='size-3.5 text-slate-400' /> : null
                       })}
