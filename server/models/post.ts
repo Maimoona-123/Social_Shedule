@@ -5,7 +5,7 @@ const postSchema = new mongoose.Schema({
     content: { type: String, required: true },
     mediaUrl: { type: String },
     mediaType: { type: String, enum: ["image", "video",] },
-    platform:[ { type: String, enum: ["Twitter", "LinkedIn", "facebook", "instagram", "facebook_page",
+    platform:[ { type: [String], enum: ["Twitter", "LinkedIn", "facebook", "instagram", "facebook_page",
      "linkedin_page", "instagram_buisness"]}],
 
      scheduledFor: {type: Date, required: true},

@@ -41,7 +41,7 @@ const AIComposer = () => {
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/api/posts/generation', { prompt, tone, generateImage });
+      const { data } = await api.post('/api/posts/generate', { prompt, tone, generateImage });
       setGenerations([data, ...generations]);
       setActiveScheduler(data);
       toast.success("Content generated..!")

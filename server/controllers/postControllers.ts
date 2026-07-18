@@ -43,6 +43,8 @@ const pollLeonardo = async (generationId: string, apiKey: string): Promise<strin
 // Post /api/posts/generate
 export const generatePost = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+        console.log("In post..");
+        
         const { prompt, tone, generateImage } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
@@ -53,11 +55,11 @@ export const generatePost = async (req: AuthRequest, res: Response): Promise<voi
         // Generate text
         const ai = new GoogleGenAI({ apiKey });
         const textResponse = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3.1-flash-lite",
             contents: `Generate a social media post based on this prompt: "${prompt}".
             Tone: ${tone}.
             Include relevant hashtags.
-            Format the response as json with "Content" and "imagePrompt" fields.
+            Format the response as json with "content" and "imagePrompt" fields.
             The "imagePrompt" should be a highly descriptive prompt for an image generator that complements the post.`,
         });
 
@@ -175,13 +177,17 @@ export const getPosts = async (req: AuthRequest, res: Response): Promise<void> =
 export const schedulePost = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { content, platforms, scheduledFor, status } = req.body;
+        console.log("in schedule post")
 
         // parse platforms if it comes as a stringified array from data
         let parsedPlatforms = platforms;
+        console.log(typeof platforms,'type')
         if (typeof platforms === "string") {
             try {
                 parsedPlatforms = JSON.parse(platforms);
+                console.log(parsedPlatforms,'my plaftorms')
             } catch (e) {
+                console.log(e,'my error')
                 parsedPlatforms = platforms.split(",");
             }
         }
@@ -192,12 +198,14 @@ export const schedulePost = async (req: AuthRequest, res: Response): Promise<voi
         if (req.file) {
             const result = await new Promise<any>((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream({ resource_type: "auto", folder: "social-scheduler" }, (error, result) => {
+                    console.log(error,'my error')
                     if (error) reject(error);
                     else resolve(result);
                 });
 
                 stream.end(req.file!.buffer);
             });
+            console.log(result,'my rsult')
             mediaUrl = result.secure_url;
             mediaType = result.resource_type === "video" ? "video" : "image";
         }
