@@ -124,61 +124,105 @@ export const generateAuthUrl = async (req: AuthRequest, res: Response): Promise<
 
 // Sync connected accounts from Zernio into MongoDB
 
-export const syncAccounts = async(req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const profileId = await getOrCreateZernioProfile(req.user);
+export const syncAccounts = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const profileId = await getOrCreateZernioProfile(req.user);
 
-        const result = await zernio.accounts.listAccounts({
-            query:{profileId} as any
-        })
+    console.log("PROFILE ID:", profileId);
 
-        const data = result.data as any;
-        const zernioAccounts: any[] = data?.account || (Array.isArray(data) ? data : []);
-        const supportedPlatforms = ["twitter", "linkedin", "facebook", "instagram"]
-        const syncedAccounts = [];
+    const result = await zernio.accounts.listAccounts({
+      query: { profileId } as any,
+    });
 
-        for (const zAccounts of zernioAccounts){
-            const zid = zAccounts._id || zAccounts.id;
+    const data = result.data as any;
 
-            if(!zid){
-                console.warn("Skipping account with no ID:", zAccounts);
-                continue;
-            }
+    console.log("========== ZERNIO ACCOUNTS RESPONSE ==========");
+    console.log(JSON.stringify(data, null, 2));
 
-            const rawPlatform = (zAccounts.platform || zAccounts.type || "").toLowerCase();
-            const normalizedPlatform = supportedPlatforms.find((p) => rawPlatform.includes(p));
+    // Handle different response formats
+    const zernioAccounts: any[] =
+      data?.accounts ||
+      data?.account ||
+      data?.data ||
+      (Array.isArray(data) ? data : []);
 
-            if(!normalizedPlatform){
-                console.log(`Skipping unsupported platform: "${rawPlatform}"`)
-                continue;
-            }
+    console.log("FOUND ACCOUNTS:", zernioAccounts);
 
-            const account = await Account.findOneAndUpdate(
-                {zernioAccountId: zid},
-                {
-                    user: req.user._id,
-                    platform: normalizedPlatform,
-                    handle: zAccounts.username || zAccounts.name || zAccounts.handle || "Unknown",
-                    zernioAccountId: zid,
-                    status: "connected",
-                    avatarUrl: zAccounts.avatarUrl || zAccounts.picture || zAccounts.profile_image_url,
-                },
-                {upsert: true, returnDocument: 'after'}
-            )
+    const supportedPlatforms = [
+      "twitter",
+      "linkedin",
+      "facebook",
+      "instagram",
+    ];
 
-            syncedAccounts.push(account)
+    const syncedAccounts = [];
+
+    for (const zAccounts of zernioAccounts) {
+      console.log("Saving Account:", zAccounts);
+
+      const zid = zAccounts._id || zAccounts.id;
+
+      if (!zid) {
+        console.warn("Skipping account with no ID:", zAccounts);
+        continue;
+      }
+
+      const rawPlatform = (
+        zAccounts.platform ||
+        zAccounts.type ||
+        ""
+      ).toLowerCase();
+
+      const normalizedPlatform = supportedPlatforms.find((p) =>
+        rawPlatform.includes(p)
+      );
+
+      if (!normalizedPlatform) {
+        console.log(`Skipping unsupported platform: "${rawPlatform}"`);
+        continue;
+      }
+
+      const account = await Account.findOneAndUpdate(
+        {
+          zernioAccountId: zid,
+        },
+        {
+          user: req.user._id,
+          platform: normalizedPlatform,
+          handle:
+            zAccounts.username ||
+            zAccounts.name ||
+            zAccounts.handle ||
+            "Unknown",
+          zernioAccountId: zid,
+          status: "connected",
+          avatarUrl:
+            zAccounts.avatarUrl ||
+            zAccounts.picture ||
+            zAccounts.profile_image_url,
+        },
+        {
+          upsert: true,
+          new: true,
         }
+      );
 
-        res.json(syncedAccounts)
+      console.log("Saved in Mongo:", account);
 
-    } catch (error: any) {
-        console.error(
-            "syncAccounts Error:",
-            error?.response?.data || error?.message || error
-        );
-
-        res.status(500).json({
-            message: error?.message || "Server error"
-        })
+      syncedAccounts.push(account);
     }
-}
+
+    console.log("TOTAL SAVED:", syncedAccounts.length);
+
+    res.json(syncedAccounts);
+  } catch (error: any) {
+    console.error("syncAccounts Error:", error);
+
+    res.status(500).json({
+      message: error?.message || "Server error",
+    });
+  }
+};
